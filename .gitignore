@@ -2,10 +2,12 @@
 build
 *.so
 __pycache__
-converted_model/
+converted_onnx_models/
+converted_trt_models/
 measurements/
 setup/
 .vscode/
 .devcontainer/
 get_patches_prototypes.txt
 todo.txt
+.idea/

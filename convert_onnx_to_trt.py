@@ -62,12 +62,19 @@ def parse_args():
 
 def create_profile_with_shapes(builder: trt.Builder):
     profile = builder.create_optimization_profile()
+    # modifying for EuroC dataset
     profile.set_shape(
         "image",
-        (1, 3, 376, 1241),
-        (1, 3, 376, 1241),
-        (1, 3, 376, 1241),
+        (1, 3, 480, 752),
+        (1, 3, 480, 752),
+        (1, 3, 480, 752),
     )
+    # profile.set_shape(
+    #     "image",
+    #     (1, 3, 376, 1241),
+    #     (1, 3, 376, 1241),
+    #     (1, 3, 376, 1241),
+    # )
     return profile
 
 
