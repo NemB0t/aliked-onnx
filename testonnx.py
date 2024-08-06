@@ -8,6 +8,7 @@ from time import time
 import torch
 import numpy as np
 
+
 from nets.aliked import ALIKED
 
 def to_numpy(tensor: torch.Tensor):
@@ -34,8 +35,8 @@ onnx_model_path = "./converted_onnx_models/aliked-n32-top1k-euroc.onnx"
 # onnx_model = onnx.load("./converted_model/aliked-n32-top1k-euroc.onnx")
 # onnx.checker.check_model(onnx_model)
 # print(onnx_model)
-
-img=cv2.imread("/home/nembot/Datasets/EuRoc/MH01/mav0/cam0/data/1403636642563555584.png")
+image_path="./assets/euroc/1403636620963555584.png"#"/home/nembot/Datasets/EuRoc/MH01/mav0/cam0/data/1403636642563555584.png"
+img=cv2.imread(image_path)
 img=cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 image_tensor = (
         ToTensor()(img).to("cuda").unsqueeze(0)
@@ -61,11 +62,12 @@ for _ in tqdm(range(1), desc="ONNX timing"):
     )
     end_time = time()
     duration = (end_time - start_time) * 1000
-    print("Time to run ALIKED onnx is :"+str(duration))
+    print(f"Time to run ALIKED onnx is : {duration:.2f} ms",duration)
 
 # print(image_tensor.shape)
 kpts=pred_onnx[0]
 # print(kpts.device)
+# print(kpts)
 kpts=keypoints_to_img(kpts,image_tensor)
 for kpt in kpts:
   kpt= (int(round(kpt[0])), int(round(kpt[1])))
@@ -73,7 +75,7 @@ for kpt in kpts:
   # print(kpt)
 cv2.imshow("",img)
 cv2.waitKey()
-print(pred_onnx[2])
+# print(pred_onnx[2])
 
 
 

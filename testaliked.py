@@ -25,14 +25,15 @@ def keypoints_to_img(keypoints,img_tensor):
     keypoints = wh * (keypoints + 1) / 2
     return keypoints
 
-img=cv2.imread("/home/nembot/Datasets/EuRoc/MH01/mav0/cam0/data/1403636642563555584.png")
+image_path="./assets/euroc/1403636620963555584.png"#"/home/nembot/Datasets/EuRoc/MH01/mav0/cam0/data/1403636642563555584.png"
+img=cv2.imread(image_path)
 img=cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 model= ALIKED(model_name="aliked-n32",top_k=1000)
 start_time = time()
 pred_aliked = model.run(img)
 end_time = time()
 duration = (end_time - start_time) * 1000
-print("Time to run ALIKED Pytorch is :"+str(duration))
+print(f"Time to run ALIKED pytorch is : {duration:.2f} ms",duration)
 kpts = pred_aliked['keypoints']
 for kpt in kpts:
   kpt= (int(round(kpt[0])), int(round(kpt[1])))
