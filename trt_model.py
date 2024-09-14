@@ -1,13 +1,8 @@
-
-from typing import Any
 import numpy as np
-import pycuda.autoinit
 import pycuda.driver as cuda
 import tensorrt as trt
-
 from torchvision.transforms import ToTensor
 from nets.aliked import ALIKED_CFGS
-
 
 LOGGER_DICT = {
     "warning": trt.Logger(trt.Logger.WARNING),
@@ -18,10 +13,10 @@ LOGGER_DICT = {
 
 class TRTInference:
     def __init__(
-        self,
-        trt_engine_path: str,
-        model_type: str,
-        trt_logger: trt.Logger,
+            self,
+            trt_engine_path: str,
+            model_type: str,
+            trt_logger: trt.Logger,
     ):
         self.trt_logger = trt_logger
 
@@ -47,13 +42,18 @@ class TRTInference:
         cuda_inputs = []
         host_outputs = []
         cuda_outputs = []
-        bindings = []
 
         tensor_names = [
             engine.get_tensor_name(index)
             for index in range(engine.num_io_tensors)
         ]
+        tensor_name = engine.get_tensor_name(0)  # input tensor
+        context.set_input_shape(tensor_name, (1, 3, 480, 752))  # use your input_shape
+        assert context.all_binding_shapes_specified
         for tensor_name in tensor_names:
+            if engine.get_tensor_mode(tensor_name) == trt.TensorIOMode.INPUT:
+                context.set_input_shape(tensor_name, (1, 3, 480, 752))  # use your input_shape
+                assert context.all_binding_shapes_specified
             msg = "\n=============================="
             data_type = (
                 np.float32
@@ -68,12 +68,11 @@ class TRTInference:
             )
             msg += f"\nsize: {size}"
             msg += "\n=============================="
-            msg=""
             self.trt_logger.log(trt.Logger.INFO, msg)
             host_mem = cuda.pagelocked_empty(size, data_type)
             cuda_mem = cuda.mem_alloc(host_mem.nbytes)
-
-            bindings.append(int(cuda_mem))
+            # Reference : https://forums.developer.nvidia.com/t/tensorrt-v10-inference-using-context-execute-async-v3/289771/2
+            context.set_tensor_address(tensor_name, cuda_mem)
             if engine.get_tensor_mode(tensor_name) == trt.TensorIOMode.INPUT:
                 host_inputs.append(host_mem)
                 cuda_inputs.append(cuda_mem)
@@ -90,26 +89,23 @@ class TRTInference:
         self.cuda_inputs = cuda_inputs
         self.host_outputs = host_outputs
         self.cuda_outputs = cuda_outputs
-        self.bindings = bindings
-    
+
     def warmup(self, image: np.ndarray, num_iterations: int = 3) -> None:
         print("Starting warm-up ...")
         for _ in range(num_iterations):
             self.run(image)
         print("Warm-up done!")
-    
+
     def run(self, image):
         image_tensor = ToTensor()(image).unsqueeze(0)  # (B, C, H, W)
         image = image_tensor.numpy()
         # image = np.expand_dims(image.transpose(2, 0, 1), 0) # (1, C, H, W)
         _, _, h, w = image.shape
         wh = np.array([w - 1, h - 1])
-        keypoints, scores, descriptors = self.infer(image)
+        # print(self.dim)
+        keypoints, descriptors, scores, = self.infer(image)  # order of output changed based on findings from self.dims
         keypoints = keypoints.reshape(-1, 2)
         keypoints = wh * (keypoints + 1) / 2
-
-        # print(self.dim)
-        # print(descriptors.shape)
 
         return {
             "keypoints": keypoints.reshape(-1, 2),  # N 2
@@ -129,7 +125,6 @@ class TRTInference:
         cuda_inputs = self.cuda_inputs
         host_outputs = self.host_outputs
         cuda_outputs = self.cuda_outputs
-        bindings = self.bindings
 
         # Copy data to GPU.
         for index, host_input in enumerate(host_inputs):
@@ -137,18 +132,12 @@ class TRTInference:
             flattened_data = image[index].flatten()
             data_size = flattened_data.shape[0]
             np.copyto(pagelocked_buffer[:data_size], flattened_data)
-
         for cuda_inp, host_inp in zip(cuda_inputs, host_inputs):
             cuda.memcpy_htod_async(cuda_inp, host_inp, stream)
-
         # Inference.
-        context.execute_async_v2(
-            bindings=bindings, stream_handle=stream.handle
+        context.execute_async_v3(
+            stream_handle=stream.handle
         )
-        # context.execute_async_v3(
-        #     # bindings=bindings, stream_handle=stream.handle
-        #     stream_handle=stream.handle
-        # )
 
         # Copy to host.
         for cuda_out, host_out in zip(cuda_outputs, host_outputs):
