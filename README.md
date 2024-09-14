@@ -20,7 +20,8 @@ Additionally, after fetching top-k keypoints, user can always manually reject th
 For PyTorch and TensorRT:
 * **container**: nvcr.io/nvidia/pytorch:23.12-py3
 * **PyTorch**: 2.2.0a0+81ea7a4
-* **TensorRT**: 8.6.1
+* **TensorRT**: 10+
+* **Cuda**: v12.2
 * **Torch-TensorRT**: 2.2.0a0
 * **ONNX**: 1.15.0rc2
 * **GPUs**: GTX 1660 TI (nvidia-driver: 545.29.06) and RTX 2070 (nvidia-driver:530.41.03)
