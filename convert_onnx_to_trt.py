@@ -113,7 +113,7 @@ def build_tensorrt_network(
         trt_logger
     ) as builder, builder.create_builder_config() as config:
         profile = create_profile_with_shapes(builder)
-        # config.add_optimization_profile(profile)
+        config.add_optimization_profile(profile)
 
         with builder.create_network(explicit_batch) as network, trt.OnnxParser(
             network, trt_logger

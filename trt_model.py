@@ -68,6 +68,7 @@ class TRTInference:
             )
             msg += f"\nsize: {size}"
             msg += "\n=============================="
+            msg=""
             self.trt_logger.log(trt.Logger.INFO, msg)
             host_mem = cuda.pagelocked_empty(size, data_type)
             cuda_mem = cuda.mem_alloc(host_mem.nbytes)
@@ -106,6 +107,9 @@ class TRTInference:
         keypoints, scores, descriptors = self.infer(image)
         keypoints = keypoints.reshape(-1, 2)
         keypoints = wh * (keypoints + 1) / 2
+
+        # print(self.dim)
+        # print(descriptors.shape)
 
         return {
             "keypoints": keypoints.reshape(-1, 2),  # N 2
